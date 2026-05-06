@@ -37,7 +37,10 @@ class ParsedBidsFilename {
    * @param other - Another parsed BIDS file name.
    * @returns Whether or not the two names are equivalent.
    */
-  public equals(other: ParsedBidsFilename): boolean {
+  public equals(other: unknown): boolean {
+    if (!(other instanceof ParsedBidsFilename)) {
+      return false
+    }
     return this._isSubset(other) && other._isSubset(this)
   }
 
@@ -104,7 +107,7 @@ class OrganizedBidsCandidates {
    */
   public addCandidate(relativePath: string, suffix: string, ext: string): void {
     this.candidates.push(relativePath)
-    this.organizedPaths.get(suffix).get(ext).push(relativePath)
+    this.organizedPaths?.get(suffix)?.get(ext)?.push(relativePath)
   }
 }
 
@@ -171,7 +174,7 @@ class BidsPathOrganizer {
 
     for (const relativePath of this.relativeFilePaths) {
       // Basic validation and extension check
-      if (typeof relativePath !== 'string' || (!relativePath.endsWith('.tsv') && !relativePath.endsWith('.json'))) {
+      if (!relativePath.endsWith('.tsv') && !relativePath.endsWith('.json')) {
         continue
       }
       this._organizePath(relativePath)
@@ -360,7 +363,7 @@ export function parseBidsFilename(filePath: string): ParsedBidsFilename {
 
   // Case: Underscore present
   const rest = basename.substring(0, lastUnderscore)
-  let suffix = basename.substring(lastUnderscore + 1)
+  let suffix: string | null = basename.substring(lastUnderscore + 1)
 
   if (suffix.includes('-') && (suffix.match(/-/g) || []).length === 1) {
     _updateEntity(nameDict, suffix)
@@ -370,7 +373,7 @@ export function parseBidsFilename(filePath: string): ParsedBidsFilename {
 
   const entityPieces = rest.split('_')
   if (entityPieces.length > 0 && !entityPieces[0].includes('-')) {
-    nameDict.prefix = entityPieces.shift()
+    nameDict.prefix = entityPieces.shift() ?? null
   }
 
   for (const entity of entityPieces) {
@@ -483,7 +486,7 @@ export function getMergedSidecarData(
     if (!acc.has(dir)) {
       acc.set(dir, [])
     }
-    acc.get(dir).push(xpath)
+    acc.get(dir)?.push(xpath)
     return acc
   }, new Map<string, string[]>())
 
@@ -522,7 +525,7 @@ function _testSameDir(dir: string, sidecarsInDir: string[]): void {
   const parsedBidsFileNames = sidecarsInDir.map((path) => parseBidsFilename(path))
   const iterator = iteratePairwiseCombinations(zip(sidecarsInDir, parsedBidsFileNames))
   for (const [[firstName, firstParsed], [secondName, secondParsed]] of iterator) {
-    if (firstParsed.equals(secondParsed)) {
+    if (firstParsed?.equals(secondParsed)) {
       IssueError.generateAndThrowInternalError(
         `BIDS inheritance conflict in directory '${dir}': sidecars '${firstName}' and '${secondName}' are not hierarchically related.`,
       )

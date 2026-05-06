@@ -42,7 +42,7 @@ export default class TagConverter {
   /**
    * The entry manager for the tags in the active schema.
    */
-  private readonly tagMapping: SchemaEntryManager<SchemaTag>
+  private readonly tagMapping: SchemaEntryManager<SchemaTag> | undefined
 
   /**
    * The converted tag in the schema.
@@ -67,12 +67,12 @@ export default class TagConverter {
    */
   public constructor(tagSpec: TagSpec, hedSchemas: HedSchemas) {
     this.hedSchemas = hedSchemas
-    this.tagMapping = hedSchemas.getSchema(tagSpec.library).entries.tags
+    this.tagMapping = hedSchemas.getSchema(tagSpec.library)?.entries.tags
     this.tagSpec = tagSpec
     this.tagString = tagSpec.tag
     this.tagLevels = this.tagString.split('/')
     this.tagSlashes = getTagSlashIndices(this.tagString)
-    this.remainder = undefined
+    this.remainder = ''
     this.special = ReservedChecker.getInstance()
   }
 
@@ -101,7 +101,7 @@ export default class TagConverter {
     return [this.schemaTag, this.remainder]
   }
 
-  private _validateChildTag(parentTag: SchemaTag | undefined, tagLevelIndex: number): SchemaTag {
+  private _validateChildTag(parentTag: SchemaTag | undefined, tagLevelIndex: number): SchemaTag | undefined {
     const childTag = this._getSchemaTag(tagLevelIndex)
     if (childTag === undefined) {
       // This is an extended tag
@@ -154,13 +154,13 @@ export default class TagConverter {
     }
   }
 
-  private _getSchemaTag(tagLevelIndex: number): SchemaTag {
+  private _getSchemaTag(tagLevelIndex: number): SchemaTag | undefined {
     const tagLevel = this.tagLevels[tagLevelIndex].toLowerCase()
-    return this.tagMapping.getEntry(tagLevel)
+    return this.tagMapping?.getEntry(tagLevel)
   }
 
-  private _setSchemaTag(schemaTag: SchemaTag, remainderStartLevelIndex: number): void {
-    if (this.schemaTag !== undefined) {
+  private _setSchemaTag(schemaTag: SchemaTag | undefined, remainderStartLevelIndex: number): void {
+    if (this.schemaTag !== undefined || schemaTag === undefined) {
       return
     }
     this.schemaTag = schemaTag
@@ -175,8 +175,8 @@ export default class TagConverter {
 
   private _checkNameClass(index: number): void {
     // Check whether the tagLevel is a valid name class
-    const valueClasses = this.hedSchemas.getSchema(this.tagSpec.library).entries.valueClasses
-    if (!valueClasses.definitions.get('nameClass').validateValue(this.tagLevels[index])) {
+    const valueClasses = this.hedSchemas.getSchema(this.tagSpec.library)?.entries.valueClasses
+    if (!valueClasses?.definitions?.get('nameClass')?.validateValue(this.tagLevels[index])) {
       IssueError.generateAndThrow('invalidExtension', {
         tag: this.tagLevels[index],
         parentTag: this.tagLevels.slice(0, index).join('/'),

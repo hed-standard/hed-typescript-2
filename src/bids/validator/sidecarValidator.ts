@@ -69,6 +69,9 @@ export class BidsHedSidecarValidator extends BidsValidator {
       } else if (hedData instanceof Map) {
         // Categorical options have HED as a Map.
         for (const valueString of hedData.values()) {
+          if (valueString === null) {
+            continue
+          }
           issues.push(...this._checkDetails(sidecarKeyName, valueString))
         }
       } else {
@@ -122,7 +125,14 @@ export class BidsHedSidecarValidator extends BidsValidator {
   private _checkPlaceholders(sidecarKeyName: string, hedString: ParsedHedString): BidsHedIssue[] {
     const numberPlaceholders = getCharacterCount(hedString.hedString, '#')
     const sidecarKey = this.sidecar.sidecarKeys.get(sidecarKeyName)
-    if (!sidecarKey.valueString && !sidecarKey.hasDefinitions && numberPlaceholders > 0) {
+    if (!sidecarKey) {
+      return [
+        BidsHedIssue.fromHedIssue(
+          generateIssue('invalidSidecarPlaceholder', { sidecarKey: sidecarKeyName, string: hedString.hedString }),
+          this.sidecar.file,
+        ),
+      ]
+    } else if (!sidecarKey.valueString && !sidecarKey.hasDefinitions && numberPlaceholders > 0) {
       return [
         BidsHedIssue.fromHedIssue(
           generateIssue('invalidSidecarPlaceholder', { sidecarKey: sidecarKeyName, string: hedString.hedString }),

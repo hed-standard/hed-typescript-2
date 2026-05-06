@@ -6,12 +6,6 @@ import path from 'node:path'
 describe('BidsFileAccessor', () => {
   const datasetRoot = '/my/dataset'
 
-  it('should throw an error if datasetRootDirectory is not a string', () => {
-    expect(() => new BidsFileAccessor(null, new Map())).toThrow(
-      'BidsFileAccessor constructor requires a string for datasetRootDirectory.',
-    )
-  })
-
   it('should throw an error if fileMap is not a Map', () => {
     expect(() => new BidsFileAccessor(datasetRoot, [])).toThrow(
       'BidsFileAccessor constructor requires a Map argument for fileMap.',

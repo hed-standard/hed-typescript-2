@@ -65,7 +65,7 @@ class HedStringParser {
    *
    * @returns A tuple representing the parsed HED string and any parsing issues.
    */
-  public parse(fullValidation: boolean): ReturnTupleWithErrorsAndWarnings<ParsedHedString | null> {
+  public parse(fullValidation: boolean): ReturnTupleWithErrorsAndWarnings<ParsedHedString> {
     if (this.hedString === null || this.hedString === undefined) {
       return [null, [generateIssue('invalidTagString', {})], []]
     }
@@ -90,7 +90,7 @@ class HedStringParser {
     // Returns a parsed HED string unless empty
     const parsedString = new ParsedHedString(this.hedString, parsedTags)
     if (!parsedString) {
-      return [null, null, []]
+      return [null, [], []]
     }
 
     // Check the definition syntax issues
@@ -117,7 +117,7 @@ class HedStringParser {
    */
   public parseStandalone(
     defManager: DefinitionManager | null = null,
-  ): ReturnTupleWithErrorsAndWarnings<ParsedHedString | null> {
+  ): ReturnTupleWithErrorsAndWarnings<ParsedHedString> {
     // Find basic parsing issues and return if unable to parse the string. (Warnings are okay.)
     const [parsedString, errorIssues, warningIssues] = this.parse(true)
 
@@ -143,7 +143,7 @@ class HedStringParser {
   private _getWarnings(parsedString: ParsedHedString): Issue[] {
     const warnings = []
     // Check for deprecated
-    const deprecatedTags = parsedString.tags.filter((tag) => tag.isDeprecated === true)
+    const deprecatedTags = parsedString.tags.filter((tag) => tag.isDeprecated)
     if (deprecatedTags.length > 0) {
       const deprecated = deprecatedTags.map((tag) => tag.toString())
       warnings.push(
@@ -151,7 +151,7 @@ class HedStringParser {
       )
     }
     // Check for tag extensions
-    const extendedTags = parsedString.tags.filter((tag) => tag.isExtended === true)
+    const extendedTags = parsedString.tags.filter((tag) => tag.isExtended)
     if (extendedTags.length > 0) {
       const extended = extendedTags.map((tag) => tag.toString())
       warnings.push(
@@ -193,7 +193,7 @@ class HedStringParser {
     definitionsAllowed: boolean,
     placeholdersAllowed: boolean,
     fullValidation: boolean,
-  ): ReturnTupleWithErrorsAndWarnings<ParsedHedString[] | null> {
+  ): ReturnTupleWithErrorsAndWarnings<ParsedHedString[]> {
     if (!hedSchemas) {
       return [null, [generateIssue('missingSchemaSpecification', {})], []]
     }
@@ -212,7 +212,11 @@ class HedStringParser {
       warnings.push(...warningIssues)
     }
 
-    return [parsedStrings, errors, warnings]
+    if (parsedStrings.every((parsedString) => parsedString !== null)) {
+      return [parsedStrings, errors, warnings]
+    } else {
+      return [null, errors, warnings]
+    }
   }
 }
 
@@ -235,7 +239,7 @@ export function parseHedString(
   definitionsAllowed: boolean,
   placeholdersAllowed: boolean,
   fullValidation: boolean,
-): ReturnTupleWithErrorsAndWarnings<ParsedHedString | null> {
+): ReturnTupleWithErrorsAndWarnings<ParsedHedString> {
   return new HedStringParser(hedString, hedSchemas, definitionsAllowed, placeholdersAllowed).parse(fullValidation)
 }
 
@@ -251,7 +255,7 @@ export function parseStandaloneString(
   hedString: string | ParsedHedString,
   hedSchemas: HedSchemas,
   defManager: DefinitionManager | null = null,
-): ReturnTupleWithErrorsAndWarnings<ParsedHedString | null> {
+): ReturnTupleWithErrorsAndWarnings<ParsedHedString> {
   return new HedStringParser(hedString, hedSchemas, false, false).parseStandalone(defManager)
 }
 

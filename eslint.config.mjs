@@ -12,7 +12,7 @@ export default defineConfig([
   globalIgnores(['src/data/*'], 'Ignore Source Data Directory'),
 
   {
-    files: ['**/*.js', '**/*.mjs'],
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     plugins: {
       js,
     },
@@ -27,7 +27,6 @@ export default defineConfig([
       },
 
       ecmaVersion: 'latest',
-      sourceType: 'module',
     },
 
     rules: {
@@ -38,20 +37,16 @@ export default defineConfig([
         },
       ],
 
-      'linebreak-style': ['error', 'unix'],
       'guard-for-in': 'error',
-      'max-len': 'off',
       'no-var': 'error',
       'prefer-const': 'error',
       'array-callback-return': 'error',
-      'no-constant-binary-expression': 'error',
       'no-constructor-return': 'error',
       'no-duplicate-imports': 'error',
       'no-self-compare': 'error',
       'no-template-curly-in-string': 'warn',
       'no-unmodified-loop-condition': 'warn',
       'no-unreachable-loop': 'error',
-      'no-unused-private-class-members': 'error',
 
       'prefer-arrow-callback': [
         'error',
@@ -62,53 +57,15 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.cjs'],
-    plugins: {
-      js,
-    },
-
-    extends: ['js/recommended'],
-
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-        __VITE_ENV__: 'readonly',
-      },
-
-      ecmaVersion: 'latest',
-      sourceType: 'commonjs',
+      sourceType: 'module',
     },
-
-    rules: {
-      'no-console': [
-        'error',
-        {
-          allow: ['warn'],
-        },
-      ],
-
-      'linebreak-style': ['error', 'unix'],
-      'guard-for-in': 'error',
-      'max-len': 'off',
-      'no-var': 'error',
-      'prefer-const': 'error',
-      'array-callback-return': 'error',
-      'no-constant-binary-expression': 'error',
-      'no-constructor-return': 'error',
-      'no-duplicate-imports': 'error',
-      'no-self-compare': 'error',
-      'no-template-curly-in-string': 'warn',
-      'no-unmodified-loop-condition': 'warn',
-      'no-unreachable-loop': 'error',
-      'no-unused-private-class-members': 'error',
-
-      'prefer-arrow-callback': [
-        'error',
-        {
-          allowUnboundThis: false,
-        },
-      ],
+  },
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
     },
   },
   {
@@ -133,21 +90,18 @@ export default defineConfig([
         },
       ],
 
-      'linebreak-style': ['error', 'unix'],
       'guard-for-in': 'error',
-      'max-len': 'off',
       'no-var': 'error',
       'prefer-const': 'error',
       'array-callback-return': 'error',
-      'no-constant-binary-expression': 'error',
       'no-constructor-return': 'error',
       'no-duplicate-imports': 'error',
       'no-self-compare': 'error',
       'no-template-curly-in-string': 'warn',
       'no-unmodified-loop-condition': 'warn',
       'no-unreachable-loop': 'error',
-      'no-unused-private-class-members': 'error',
       '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/explicit-member-accessibility': 'warn',
 
       'prefer-arrow-callback': [
         'error',

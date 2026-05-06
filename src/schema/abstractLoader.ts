@@ -29,12 +29,12 @@ export default abstract class AbstractHedSchemaLoader {
      * [[xmlData, ...], [xmlData, xmlData, ...], ...] */
     const schemaXmlData = await Promise.all(
       schemaPrefixes.map((prefix) => {
-        const specs = schemaSpecs.data.get(prefix)
+        const specs = schemaSpecs.data.get(prefix) ?? []
         return Promise.all(specs.map((spec) => this.loadSchema(spec)))
       }),
     )
     const schemaObjects = schemaXmlData.map((schemaXmls) => this.buildSchemaObjects(schemaXmls))
-    const schemas = new Map<string, HedSchema>(zip<string, HedSchema>(schemaPrefixes, schemaObjects))
+    const schemas = new Map<string, HedSchema>(zip(schemaPrefixes, schemaObjects) as [string, HedSchema][])
     return new HedSchemas(schemas)
   }
 

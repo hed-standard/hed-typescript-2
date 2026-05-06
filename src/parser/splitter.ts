@@ -7,7 +7,7 @@ import ParsedHedColumnSplice from './parsedHedColumnSplice'
 import ParsedHedGroup from './parsedHedGroup'
 import type ParsedHedSubstring from './parsedHedSubstring'
 import ParsedHedTag from './parsedHedTag'
-import { ColumnSpliceSpec, type GroupSpec, HedStringTokenizer, type NonGroupSubstringSpec, TagSpec } from './tokenizer'
+import { type GroupSpec, HedStringTokenizer, type NonGroupSubstringSpec, TagSpec } from './tokenizer'
 import { generateIssue, type Issue, IssueError } from '../issues/issues'
 import { type HedSchemas } from '../schema/containers'
 import { recursiveMap } from '../utils/array'
@@ -54,9 +54,12 @@ export default class HedStringSplitter {
    *
    * @returns A tuple representing the parsed HED string data and any issues found.
    */
-  public splitHedString(): ReturnTupleWithIssues<ParsedHedSubstring[] | null> {
+  public splitHedString(): ReturnTupleWithIssues<ParsedHedSubstring[]> {
     if (this.parsedTags === undefined) {
-      this._splitHedString()
+      this._splitHedString() // This should set the field to something defined.
+    }
+    if (this.parsedTags === undefined) {
+      IssueError.generateAndThrowInternalError('parsedTags should have been set by now')
     }
     return [this.parsedTags, this.issues]
   }
@@ -67,17 +70,12 @@ export default class HedStringSplitter {
    * @returns A tuple representing the parsed HED string data and any issues found.
    */
   private _splitHedString(): void {
-    if (typeof this.hedString !== 'string') {
-      this.parsedTags = null
-      this.issues.push(generateIssue('invalidTagString', {}))
-      return
-    }
     if (this.hedString === '') {
       this.parsedTags = []
       return
     }
     const [tagSpecs, groupBounds, issues] = new HedStringTokenizer(this.hedString).tokenize()
-    if (issues.length > 0) {
+    if (groupBounds === null) {
       this.parsedTags = null
       this.issues.push(...issues)
       return
@@ -117,7 +115,7 @@ export default class HedStringSplitter {
         this.issues.push(this._handleIssueError(issueError))
         return null
       }
-    } else if (tagSpec instanceof ColumnSpliceSpec) {
+    } else {
       return new ParsedHedColumnSplice(tagSpec.columnName, tagSpec.bounds)
     }
   }
@@ -144,7 +142,10 @@ export default class HedStringSplitter {
    * @param groupSpecs - The group specifications.
    * @returns The parsed HED groups.
    */
-  private _createParsedGroups(tags: RecursiveArray<ParsedHedSubstring>, groupSpecs: GroupSpec[]): ParsedHedSubstring[] {
+  private _createParsedGroups(
+    tags: RecursiveArray<ParsedHedSubstring | null>,
+    groupSpecs: GroupSpec[],
+  ): ParsedHedSubstring[] {
     const tagGroups: ParsedHedSubstring[] = []
     let index = 0
 

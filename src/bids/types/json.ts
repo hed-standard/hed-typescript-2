@@ -3,8 +3,6 @@
  * @module bids/types/json
  */
 
-import isPlainObject from 'lodash/isPlainObject'
-
 import { parseHedString } from '../../parser/parser'
 import ParsedHedString from '../../parser/parsedHedString'
 import { BidsFile, type FilePath } from './file'
@@ -13,7 +11,7 @@ import { IssueError, addIssueParameters, type Issue } from '../../issues/issues'
 import { DefinitionManager, Definition } from '../../parser/definitionManager'
 import { type HedSchemas } from '../../schema/containers'
 import type ParsedHedColumnSplice from '../../parser/parsedHedColumnSplice'
-import { type JsonObject } from '../../utils/types'
+import { isJsonObject, isStringRecord, type JsonObject } from '../../utils/types'
 
 const ILLEGAL_SIDECAR_KEYS = new Set(['hed', 'n/a'])
 
@@ -67,7 +65,7 @@ export class BidsSidecar extends BidsJsonFile {
   /**
    * The parsed HED data for this sidecar.
    */
-  parsedHedData: Map<string, ParsedHedString | Map<string, ParsedHedString>>
+  parsedHedData: Map<string, ParsedHedString | null | Map<string, ParsedHedString | null>>
 
   /**
    * The extracted HED value strings.
@@ -201,7 +199,7 @@ export class BidsSidecar extends BidsJsonFile {
           this._verifyKeyHasNoDeepHed(key, value, key)
           return null
         })
-        .filter(Boolean),
+        .filter((value) => value !== null),
     )
   }
 
@@ -221,7 +219,7 @@ export class BidsSidecar extends BidsJsonFile {
         sidecarKey: topKey,
       })
     }
-    if (!isPlainObject(value)) {
+    if (!isJsonObject(value)) {
       return
     }
     for (const [subkey, subvalue] of Object.entries(value)) {
@@ -294,10 +292,10 @@ export class BidsSidecar extends BidsJsonFile {
    * @param sidecarKey - The column to be checked for column splices.
    * @param hedData - A Map with columnValue --> parsed HED string for a sidecar key to check for column splices.
    */
-  private _parseCategorySplice(sidecarKey: string, hedData: Map<string, ParsedHedString>): void {
+  private _parseCategorySplice(sidecarKey: string, hedData: Map<string, ParsedHedString | null>): void {
     let keyReferences = null
     for (const valueString of hedData.values()) {
-      if (valueString?.columnSplices.length > 0) {
+      if (valueString !== null && valueString?.columnSplices.length > 0) {
         keyReferences = this._processColumnSplices(keyReferences, valueString.columnSplices)
       }
     }
@@ -340,7 +338,7 @@ export class BidsSidecarKey {
   /**
    * The parsed category mapping.
    */
-  parsedCategoryMap: Map<string, ParsedHedString>
+  parsedCategoryMap: Map<string, ParsedHedString | null>
 
   /**
    * The unparsed value string.
@@ -350,7 +348,7 @@ export class BidsSidecarKey {
   /**
    * The parsed value string.
    */
-  parsedValueString: ParsedHedString
+  parsedValueString: ParsedHedString | null
 
   /**
    * Weak reference to the sidecar.
@@ -375,7 +373,7 @@ export class BidsSidecarKey {
     this.sidecar = sidecar
     if (typeof data === 'string') {
       this.valueString = data
-    } else if (!isPlainObject(data)) {
+    } else if (!isStringRecord(data)) {
       IssueError.generateAndThrow('illegalSidecarHedType', { sidecarKey: key, filePath: sidecar?.file?.path })
     } else {
       this.categoryMap = new Map<string, string>(Object.entries(data))
@@ -439,17 +437,12 @@ export class BidsSidecarKey {
           sidecarKey: this.name,
           filePath: this.sidecar?.file?.path,
         })
-      } else if (typeof string !== 'string') {
-        IssueError.generateAndThrow('illegalSidecarHedType', {
-          sidecarKey: this.name,
-          filePath: this.sidecar?.file?.path,
-        })
       }
       const [parsedString, errorIssues, warningIssues] = parseHedString(string, hedSchemas, true, true, fullValidation)
       this.parsedCategoryMap.set(value, parsedString)
       warnings.push(...warningIssues)
       errors.push(...errorIssues)
-      if (errorIssues.length === 0) {
+      if (parsedString !== null) {
         const defIssues = this._checkDefinitions(parsedString)
         errors.push(...defIssues)
       }
@@ -471,7 +464,7 @@ export class BidsSidecarKey {
       }
       this.hasDefinitions = true
       const [def, defIssues] = Definition.createDefinitionFromGroup(group)
-      if (defIssues.length > 0) {
+      if (def === null) {
         errors.push(...defIssues)
       } else {
         errors.push(...this.sidecar.definitions.addDefinition(def))

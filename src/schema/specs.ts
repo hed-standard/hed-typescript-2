@@ -119,6 +119,9 @@ export class SchemaSpec {
     if (versionSplit.length > 0) {
       IssueError.generateAndThrow('invalidSchemaSpecification', { spec: originalVersion })
     }
+    if (secondSegment === undefined) {
+      IssueError.generateAndThrow('invalidSchemaSpecification', { spec: originalVersion })
+    }
     if (firstSegment !== undefined && !alphabeticRegExp.test(firstSegment)) {
       IssueError.generateAndThrow('invalidSchemaSpecification', { spec: originalVersion })
     }
@@ -164,7 +167,7 @@ export class SchemasSpec {
    */
   public addSchemaSpec(schemaSpec: SchemaSpec): this {
     if (this.#data.has(schemaSpec.prefix)) {
-      this.#data.get(schemaSpec.prefix).push(schemaSpec)
+      this.#data.get(schemaSpec.prefix)?.push(schemaSpec)
     } else {
       this.#data.set(schemaSpec.prefix, [schemaSpec])
     }

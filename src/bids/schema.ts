@@ -15,7 +15,7 @@ import { type BidsJsonFile } from './types/json'
  * @returns A Promise with the schema collection, or null if the specification is missing.
  * @throws {IssueError} If the schema specification is invalid.
  */
-export async function buildBidsSchemas(datasetDescription: BidsJsonFile): Promise<HedSchemas> {
+export async function buildBidsSchemas(datasetDescription: BidsJsonFile): Promise<HedSchemas | null> {
   if (datasetDescription?.jsonData?.HEDVersion) {
     const schemasSpec = SchemasSpec.parseVersionSpecs(datasetDescription.jsonData.HEDVersion)
     return buildSchemas(schemasSpec)

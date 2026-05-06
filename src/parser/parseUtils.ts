@@ -25,7 +25,7 @@ export function filterByClass<C>(items: unknown[], classType: Constructor<C>): C
  * @returns A list of tags with the name {}
  */
 export function filterByTagName(tags: ParsedHedTag[], tagName: string): ParsedHedTag[] {
-  return tags?.filter((tag) => tag instanceof ParsedHedTag && tag.schemaTag?.name === tagName) ?? []
+  return tags?.filter((tag) => tag.schemaTag?.name === tagName) ?? []
 }
 
 /**

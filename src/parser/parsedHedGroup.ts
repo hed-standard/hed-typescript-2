@@ -84,7 +84,7 @@ export default class ParsedHedGroup extends ParsedHedSubstring {
   /**
    * The normalized string representation of this column splice.
    */
-  #normalized: string
+  #normalized: string | undefined
 
   /**
    * Constructor.

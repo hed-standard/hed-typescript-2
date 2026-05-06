@@ -90,7 +90,6 @@ export class BidsDataset<FileType> {
     this.fileAccessor = accessor
     this.datasetRootDirectory = accessor.datasetRootDirectory // Set from fileAccessor
     this.sidecarMap = new Map()
-    this.hedSchemas = null
   }
 
   /**
@@ -155,10 +154,11 @@ export class BidsDataset<FileType> {
     }
 
     try {
-      this.hedSchemas = await this.fileAccessor.schemaBuilder(description)
-      if (this.hedSchemas === null) {
+      const hedSchemas = await this.fileAccessor.schemaBuilder(description)
+      if (hedSchemas === null) {
         IssueError.generateAndThrow('invalidSchemaSpecification', { spec: description.jsonData?.HEDVersion || null })
       }
+      this.hedSchemas = hedSchemas
     } catch (e) {
       if (e instanceof IssueError) {
         throw e

@@ -33,12 +33,12 @@ export type RecursiveArray<Type> = Array<Type | RecursiveArray<Type>>
 /**
  * A value returned alongside an Issue array.
  */
-export type ReturnTupleWithIssues<Type> = [Type, Issue[]]
+export type ReturnTupleWithIssues<Type> = [Type | null, Issue[]]
 
 /**
  * A value returned alongside Issue arrays representing separated errors and warnings.
  */
-export type ReturnTupleWithErrorsAndWarnings<Type> = [Type, Issue[], Issue[]]
+export type ReturnTupleWithErrorsAndWarnings<Type> = [Type | null, Issue[], Issue[]]
 
 /**
  * A pair of numbers used as substring bounds.
@@ -68,6 +68,16 @@ export type JsonObject = Record<string, unknown>
  */
 export function isJsonObject(value: unknown): value is JsonObject {
   return isPlainObject(value) && Object.getOwnPropertySymbols(value).length === 0
+}
+
+/**
+ * Type guard for a plain string record.
+ *
+ * @param value - A possible plain object.
+ * @returns Whether the value is a plain string record.
+ */
+export function isStringRecord(value: unknown): value is Record<string, string> {
+  return isJsonObject(value) && Object.values(value).every((objectValue) => typeof objectValue === 'string')
 }
 
 /**

@@ -19,11 +19,10 @@ export class IssueError extends Error {
    * Constructor.
    *
    * @param issue - The associated HED issue.
-   * @param params - Extra parameters (to be forwarded to the {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error | Error} constructor).
    */
-  constructor(issue: Issue, ...params: unknown[]) {
+  constructor(issue: Issue) {
     // Pass remaining arguments (including vendor specific ones) to parent constructor
-    super(issue.message, ...params)
+    super(issue.message)
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -320,7 +319,7 @@ export function addIssueParameters(issues: Array<Issue | IssueError>, parameters
   for (const thisIssue of issues) {
     if (thisIssue instanceof IssueError) {
       thisIssue.issue.addParameters(parameters)
-    } else if (thisIssue instanceof Issue) {
+    } else {
       thisIssue.addParameters(parameters)
     }
   }

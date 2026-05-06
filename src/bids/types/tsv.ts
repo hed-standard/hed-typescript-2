@@ -46,7 +46,7 @@ export class BidsTsvFile extends BidsFile {
     file: FilePath,
     tsvData: string | ParsedTSV | OldParsedTSV,
     mergedDictionary: Record<string, unknown> = {},
-    defManager: DefinitionManager = null,
+    defManager: DefinitionManager | null = null,
   ) {
     super(name, file, BidsHedTsvValidator)
 

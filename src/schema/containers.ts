@@ -66,7 +66,7 @@ export class PrimarySchema extends HedSchema {
     if (!library) {
       withStandard = version
     } else {
-      withStandard = xmlData.HED.$.withStandard
+      withStandard = xmlData.HED.$.withStandard ?? ''
     }
 
     super(entries, withStandard)

@@ -84,7 +84,7 @@ export default class SchemaParser {
    *
    * @param rootElement - The root XML element.
    */
-  constructor(rootElement: HedSchemaRootElement) {
+  public constructor(rootElement: HedSchemaRootElement) {
     this.rootElement = rootElement
     this._versionDefinitions = {
       typeProperties: new Set(['boolProperty']),
@@ -156,7 +156,7 @@ export default class SchemaParser {
     const tagElementChildren = nodeRoot.node
     tagElements.push(...flattenDeep(tagElementChildren.map((child) => this.getAllChildTags(child, false))))
     const tags = tagElements.map((element) => SchemaParser.getElementTagName(element))
-    return new Map(zip(tagElements, tags))
+    return new Map(zip(tagElements, tags) as [NodeElement, string][])
   }
 
   private parseProperties(): void {
@@ -175,7 +175,9 @@ export default class SchemaParser {
     for (const definition of attributeDefinitions) {
       const attributeName = SchemaParser.getElementTagName(definition)
       const propertyElements = definition.property ?? []
-      const properties = propertyElements.map((element) => this.properties.get(SchemaParser.getElementTagName(element)))
+      const properties = propertyElements
+        .map((element) => this.properties.get(SchemaParser.getElementTagName(element)))
+        .filter((property) => property !== undefined)
       this.attributes.set(attributeName, new SchemaAttribute(attributeName, new Set(properties)))
     }
     this._addCustomAttributes()
@@ -198,7 +200,7 @@ export default class SchemaParser {
       this.rootElement.valueClassDefinitions.valueClassDefinition,
     )
     for (const [name, valueAttributes] of valueAttributeDefinitions) {
-      const booleanAttributes = booleanAttributeDefinitions.get(name)
+      const booleanAttributes = booleanAttributeDefinitions.get(name) ?? new Set<SchemaAttribute>()
       const charRegex = this._getValueClassChars(name)
       const wordRegex = new RegExp(classRegex.class_words[name] ?? '^.+$')
       valueClasses.set(name, new SchemaValueClass(name, booleanAttributes, valueAttributes, charRegex, wordRegex))
@@ -212,7 +214,7 @@ export default class SchemaParser {
       this.rootElement.unitModifierDefinitions.unitModifierDefinition,
     )
     for (const [name, valueAttributes] of valueAttributeDefinitions) {
-      const booleanAttributes = booleanAttributeDefinitions.get(name)
+      const booleanAttributes = booleanAttributeDefinitions.get(name) ?? new Set<SchemaAttribute>()
       unitModifiers.set(name, new SchemaUnitModifier(name, booleanAttributes, valueAttributes))
     }
     this.unitModifiers = new SchemaEntryManager(unitModifiers)
@@ -226,8 +228,16 @@ export default class SchemaParser {
     const unitClassUnits = this.parseUnits()
 
     for (const [name, valueAttributes] of valueAttributeDefinitions) {
-      const booleanAttributes = booleanAttributeDefinitions.get(name)
-      unitClasses.set(name, new SchemaUnitClass(name, booleanAttributes, valueAttributes, unitClassUnits.get(name)))
+      const booleanAttributes = booleanAttributeDefinitions.get(name) ?? new Set<SchemaAttribute>()
+      unitClasses.set(
+        name,
+        new SchemaUnitClass(
+          name,
+          booleanAttributes,
+          valueAttributes,
+          unitClassUnits.get(name) ?? new Map<string, SchemaUnit>(),
+        ),
+      )
     }
     this.unitClasses = new SchemaEntryManager(unitClasses)
   }
@@ -248,7 +258,7 @@ export default class SchemaParser {
         SchemaParser.getElementTagName,
       )
       for (const [name, valueAttributes] of unitValueAttributeDefinitions) {
-        const booleanAttributes = unitBooleanAttributeDefinitions.get(name)
+        const booleanAttributes = unitBooleanAttributeDefinitions.get(name) ?? new Set<SchemaAttribute>()
         units.set(name, new SchemaUnit(name, booleanAttributes, valueAttributes, unitModifiers))
       }
     }
@@ -265,7 +275,7 @@ export default class SchemaParser {
     const shortTags = this._getShortTags(tags)
     const [booleanAttributeDefinitions, valueAttributeDefinitions] = this._parseAttributeElements(
       tags.keys(),
-      (element: NodeElement) => shortTags.get(element),
+      (element: NodeElement) => shortTags.get(element) ?? '',
     )
 
     const tagUnitClassDefinitions = this._processTagUnitClasses(shortTags, valueAttributeDefinitions)
@@ -315,16 +325,21 @@ export default class SchemaParser {
   ): Map<string, SchemaUnitClass[]> {
     const tagUnitClassAttribute = this.attributes.get('unitClass')
     const tagUnitClassDefinitions = new Map<string, SchemaUnitClass[]>()
+    if (!tagUnitClassAttribute) {
+      return tagUnitClassDefinitions
+    }
 
     for (const tagName of shortTags.values()) {
       const valueAttributes = valueAttributeDefinitions.get(tagName)
-      if (valueAttributes.has(tagUnitClassAttribute)) {
-        tagUnitClassDefinitions.set(
-          tagName,
-          valueAttributes.get(tagUnitClassAttribute).map((unitClassName) => {
-            return this.unitClasses.getEntry(unitClassName)
-          }),
-        )
+      if (valueAttributes?.has(tagUnitClassAttribute)) {
+        const tagUnitClasses =
+          valueAttributes
+            ?.get(tagUnitClassAttribute)
+            ?.map((unitClassName) => {
+              return this.unitClasses.getEntry(unitClassName)
+            })
+            .filter((unitClass) => unitClass !== undefined) ?? []
+        tagUnitClassDefinitions.set(tagName, tagUnitClasses)
         valueAttributes.delete(tagUnitClassAttribute)
       }
     }
@@ -345,16 +360,21 @@ export default class SchemaParser {
   ): Map<string, SchemaValueClass[]> {
     const tagValueClassAttribute = this.attributes.get('valueClass')
     const tagValueClassDefinitions = new Map<string, SchemaValueClass[]>()
+    if (!tagValueClassAttribute) {
+      return tagValueClassDefinitions
+    }
 
     for (const tagName of shortTags.values()) {
       const valueAttributes = valueAttributeDefinitions.get(tagName)
-      if (valueAttributes.has(tagValueClassAttribute)) {
-        tagValueClassDefinitions.set(
-          tagName,
-          valueAttributes.get(tagValueClassAttribute).map((valueClassName) => {
-            return this.valueClasses.getEntry(valueClassName)
-          }),
-        )
+      if (valueAttributes?.has(tagValueClassAttribute)) {
+        const tagValueClasses =
+          valueAttributes
+            ?.get(tagValueClassAttribute)
+            ?.map((valueClassName) => {
+              return this.valueClasses.getEntry(valueClassName)
+            })
+            .filter((valueClass) => valueClass !== undefined) ?? []
+        tagValueClassDefinitions.set(tagName, tagValueClasses)
         // TODO: Uncomment once value validation uses value classes.
         // valueAttributes.delete(tagValueClassAttribute)
       }
@@ -378,7 +398,8 @@ export default class SchemaParser {
     for (const [tagElement, recursiveAttributes] of recursiveAttributeMap) {
       for (const childTag of this.getAllChildTags(tagElement)) {
         const childTagName = SchemaParser.getElementTagName(childTag)
-        const newBooleanAttributes = booleanAttributeDefinitions.get(childTagName)?.union(recursiveAttributes)
+        const newBooleanAttributes =
+          booleanAttributeDefinitions.get(childTagName)?.union(recursiveAttributes) ?? new Set<SchemaAttribute>()
         booleanAttributeDefinitions.set(childTagName, newBooleanAttributes)
       }
     }
@@ -398,7 +419,10 @@ export default class SchemaParser {
     const recursiveAttributeMap = new Map<NodeElement, Set<SchemaAttribute>>()
 
     for (const [tagElement, tagName] of shortTags) {
-      recursiveAttributeMap.set(tagElement, booleanAttributeDefinitions.get(tagName)?.intersection(recursiveAttributes))
+      recursiveAttributeMap.set(
+        tagElement,
+        booleanAttributeDefinitions.get(tagName)?.intersection(recursiveAttributes) ?? new Set<SchemaAttribute>(),
+      )
     }
 
     return recursiveAttributeMap
@@ -408,14 +432,18 @@ export default class SchemaParser {
     const attributeArray = Array.from(this.attributes.values())
     let filteredAttributeArray
 
-    if (semver.lt(this.rootElement.$.version, '8.3.0')) {
-      filteredAttributeArray = attributeArray.filter((attribute) =>
-        attribute.properties.has(this.properties.get('isInheritedProperty')),
-      )
+    if (semver.lt(this._getStandardVersion(), '8.3.0')) {
+      const isInheritedProperty = this.properties.get('isInheritedProperty')
+      if (!isInheritedProperty) {
+        IssueError.generateAndThrowInternalError('Internally defined property not found')
+      }
+      filteredAttributeArray = attributeArray.filter((attribute) => attribute.properties.has(isInheritedProperty))
     } else {
-      filteredAttributeArray = attributeArray.filter(
-        (attribute) => !attribute.properties.has(this.properties.get('annotationProperty')),
-      )
+      const annotationProperty = this.properties.get('annotationProperty')
+      if (!annotationProperty) {
+        IssueError.generateAndThrow('invalidSchema', { error: 'Schema is missing required property' })
+      }
+      filteredAttributeArray = attributeArray.filter((attribute) => !attribute.properties.has(annotationProperty))
     }
 
     return new Set(filteredAttributeArray)
@@ -438,15 +466,18 @@ export default class SchemaParser {
   ): Map<string, SchemaTag> {
     const tagTakesValueAttribute = this.attributes.get('takesValue')
     const tagEntries = new Map<string, SchemaTag>()
+    if (!tagTakesValueAttribute) {
+      IssueError.generateAndThrow('invalidSchema', { error: 'The required takesValue attribute was not found' })
+    }
 
     for (const [name, valueAttributes] of valueAttributeDefinitions) {
       if (tagEntries.has(name)) {
         IssueError.generateAndThrow('duplicateTagsInSchema')
       }
 
-      const booleanAttributes = booleanAttributeDefinitions.get(name)
-      const unitClasses = tagUnitClassDefinitions.get(name)
-      const valueClasses = tagValueClassDefinitions.get(name)
+      const booleanAttributes = booleanAttributeDefinitions.get(name) ?? new Set<SchemaAttribute>()
+      const unitClasses = tagUnitClassDefinitions.get(name) ?? []
+      const valueClasses = tagValueClassDefinitions.get(name) ?? []
 
       if (booleanAttributes.has(tagTakesValueAttribute)) {
         tagEntries.set(
@@ -474,15 +505,23 @@ export default class SchemaParser {
     tagEntries: Map<string, SchemaTag>,
   ): void {
     for (const tagElement of tags.keys()) {
-      const tagName = shortTags.get(tagElement)
-      const parentTagName = shortTags.get(tagElement.$parent)
-
-      if (parentTagName) {
-        tagEntries.get(lc(tagName)).parent = tagEntries.get(lc(parentTagName))
+      if (!tagElement.$parent) {
+        continue
       }
 
+      const tagName = lc(shortTags.get(tagElement) ?? '')
+      const parentTagName = lc(shortTags.get(tagElement.$parent) ?? '')
+      const tagEntry = tagEntries.get(tagName)
+      const parentTagEntry = tagEntries.get(parentTagName)
+
+      if (!tagEntry || !parentTagEntry) {
+        IssueError.generateAndThrowInternalError('Could not find already-created tag objects')
+      }
+
+      tagEntry.parent = parentTagEntry
+
       if (SchemaParser.getElementTagName(tagElement) === '#') {
-        tagEntries.get(lc(parentTagName)).valueTag = tagEntries.get(lc(tagName))
+        parentTagEntry.valueTag = tagEntry
       }
     }
   }
@@ -519,12 +558,16 @@ export default class SchemaParser {
 
     for (const tagAttribute of tagAttributes) {
       const attributeName = SchemaParser.getElementTagName(tagAttribute)
+      const attribute = this.attributes.get(attributeName)
+      if (!attribute) {
+        IssueError.generateAndThrow('invalidSchema', { error: 'Referenced schema attribute was not found' })
+      }
       if (tagAttribute.value === undefined) {
-        booleanAttributes.add(this.attributes.get(attributeName))
+        booleanAttributes.add(attribute)
         continue
       }
       const values = tagAttribute.value.map((value) => value._.toString())
-      valueAttributes.set(this.attributes.get(attributeName), values)
+      valueAttributes.set(attribute, values)
     }
 
     return [booleanAttributes, valueAttributes]
@@ -532,20 +575,34 @@ export default class SchemaParser {
 
   private _addCustomAttributes(): void {
     const isInheritedProperty = this.properties.get('isInheritedProperty')
+    if (!isInheritedProperty) {
+      return
+    }
     const extensionAllowedAttribute = this.attributes.get('extensionAllowed')
-    if (this.rootElement.$.library === undefined && semver.lt(this.rootElement.$.version, '8.2.0')) {
+    if (extensionAllowedAttribute && semver.lt(this._getStandardVersion(), '8.2.0')) {
       extensionAllowedAttribute._properties.add(isInheritedProperty)
     }
     const inLibraryAttribute = this.attributes.get('inLibrary')
-    if (inLibraryAttribute && semver.lt(this.rootElement.$.version, '8.3.0')) {
+    if (inLibraryAttribute && semver.lt(this._getStandardVersion(), '8.3.0')) {
       inLibraryAttribute._properties.add(isInheritedProperty)
     }
   }
 
   private _addCustomProperties(): void {
-    if (this.rootElement.$.library === undefined && semver.lt(this.rootElement.$.version, '8.2.0')) {
+    if (semver.lt(this._getStandardVersion(), '8.2.0')) {
       const recursiveProperty = new SchemaProperty('isInheritedProperty')
       this.properties.set('isInheritedProperty', recursiveProperty)
     }
+  }
+
+  private _getStandardVersion(): string {
+    if (this.rootElement.$.library === undefined) {
+      return this.rootElement.$.version
+    }
+    if (this.rootElement.$.withStandard !== undefined) {
+      return this.rootElement.$.withStandard
+    }
+    // Return minimum supported version
+    return '8.1.0'
   }
 }

@@ -17,7 +17,7 @@ interface ReservedTagRequirement {
   requireValue: boolean
   tagGroup: boolean
   topLevelTagGroup: boolean
-  maxNonDefSubgroups: number
+  maxNonDefSubgroups: number | null
   minNonDefSubgroups: number
   ERROR_CODE: string
   noSpliceInGroup: boolean
@@ -191,6 +191,10 @@ export class ReservedChecker {
 
     const reservedRequirements = ReservedChecker.reservedMap.get(reservedTag.schemaTag.name)
 
+    if (reservedRequirements === undefined) {
+      IssueError.generateAndThrowInternalError('Could not find requirements for reserved tag')
+    }
+
     // Check that only allowed tags are at the top level.
     const issues = this._checkAllowedTags(group, reservedTag, reservedRequirements)
     if (issues.length > 0) {
@@ -332,11 +336,19 @@ export class ReservedChecker {
    * Note: This check both the reserved requirements and the 'topLevelTagGroup' attribute in the schema.
    */
   static hasTopLevelTagGroupAttribute(tag: ParsedHedTag): boolean {
-    return (
-      tag.schemaTag.hasAttribute('topLevelTagGroup') ||
-      (ReservedChecker.reservedMap.has(tag.schemaTag.name) &&
-        ReservedChecker.reservedMap.get(tag.schemaTag.name).topLevelTagGroup)
-    )
+    if (tag.schemaTag.hasAttribute('topLevelTagGroup')) {
+      return true
+    }
+    if (!ReservedChecker.reservedMap.has(tag.schemaTag.name)) {
+      return false
+    }
+    const reservedRequirements = ReservedChecker.reservedMap.get(tag.schemaTag.name)
+
+    if (reservedRequirements === undefined) {
+      IssueError.generateAndThrowInternalError('Could not find requirements for reserved tag')
+    }
+
+    return reservedRequirements.topLevelTagGroup
   }
 
   /**

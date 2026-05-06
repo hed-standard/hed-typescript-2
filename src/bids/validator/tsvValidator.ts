@@ -218,7 +218,7 @@ export class BidsHedTsvValidator extends BidsValidator {
         continue
       }
       if (onsetMap.has(element.onset)) {
-        onsetMap.get(element.onset).push(element)
+        onsetMap.get(element.onset)?.push(element)
       } else {
         onsetMap.set(element.onset, [element])
       }
@@ -254,7 +254,7 @@ export class BidsHedTsvValidator extends BidsValidator {
    */
   private _checkNoTime(elements: BidsTsvElement[]): void {
     for (const element of elements) {
-      if (element.parsedHedString.tags.some((tag) => this.reserved.timelineTags.has(tag.schemaTag.name))) {
+      if (element.parsedHedString?.tags?.some((tag) => this.reserved.timelineTags.has(tag.schemaTag.name))) {
         this.errors.push(
           BidsHedIssue.fromHedIssue(
             generateIssue('temporalTagInNonTemporalContext', { string: element.hedString, tsvLine: element.tsvLine }),
@@ -271,7 +271,7 @@ export class BidsHedTsvValidator extends BidsValidator {
  */
 export class BidsHedTsvParser {
   private static readonly nullSet = new Set([null, undefined, '', 'n/a'])
-  private static readonly braceRegEx = /\{([^{}]*?)\}/g
+  private static readonly braceRegEx = /\{([^{}]*?)}/g
 
   /**
    * The BIDS TSV file being parsed.
@@ -379,7 +379,7 @@ export class BidsHedTsvParser {
    * @param tsvLine - The index of this row in the TSV file.
    * @returns A parsed HED string.
    */
-  private _parseHedRow(rowCells: Map<string, string>, tsvLine: number): BidsTsvRow {
+  private _parseHedRow(rowCells: Map<string, string>, tsvLine: number): BidsTsvRow | null {
     const hedStringParts: string[] = []
     const columnMap = this._getColumnMapping(rowCells)
     this._spliceValues(columnMap)
@@ -393,7 +393,7 @@ export class BidsHedTsvParser {
         continue
       }
       if (columnMap.has(columnName) && !BidsHedTsvParser.nullSet.has(columnMap.get(columnName))) {
-        hedStringParts.push(columnMap.get(columnName))
+        hedStringParts.push(columnMap.get(columnName) ?? '')
       }
     }
     const hedString = hedStringParts.join(',')
@@ -409,8 +409,8 @@ export class BidsHedTsvParser {
    * @param rowCells - The column-to-value mapping for a single row.
    * @returns A mapping of column names to their corresponding parsed sidecar strings.
    */
-  private _getColumnMapping(rowCells: Map<string, string>): Map<string, string> {
-    const columnMap = new Map<string, string>()
+  private _getColumnMapping(rowCells: Map<string, string>): Map<string, string | undefined> {
+    const columnMap = new Map<string, string | undefined>()
 
     if (rowCells.has('HED')) {
       columnMap.set('HED', rowCells.get('HED'))
@@ -422,12 +422,8 @@ export class BidsHedTsvParser {
 
     // Check for the columns with HED data in the sidecar
     for (const [columnName, columnValues] of this.tsvFile.mergedSidecar.parsedHedData.entries()) {
-      if (!rowCells.has(columnName)) {
-        columnMap.set(columnName, '')
-        continue
-      }
       const rowColumnValue = rowCells.get(columnName)
-      if (rowColumnValue === 'n/a' || rowColumnValue === '') {
+      if (rowColumnValue === undefined || rowColumnValue === 'n/a' || rowColumnValue === '') {
         columnMap.set(columnName, '')
         continue
       }
@@ -451,13 +447,13 @@ export class BidsHedTsvParser {
    * @remarks
    * Note: Updates the map in place.
    */
-  private _spliceValues(columnMap: Map<string, string>) {
+  private _spliceValues(columnMap: Map<string, string | undefined>) {
     // Only iterate over the column names that have splices
     for (const column of this.tsvFile.mergedSidecar.columnSpliceMapping.keys()) {
       // if (!columnMap.has(column)) {
       //   continue
       // }
-      const unspliced = columnMap.get(column)
+      const unspliced = columnMap.get(column) ?? ''
 
       const result = this._replaceSplices(unspliced, columnMap)
       //console.log(`Column ${column}: ${unspliced} => ${result}`)
@@ -472,10 +468,10 @@ export class BidsHedTsvParser {
    * @param columnMap - The map of column name to HED string for a row.
    * @returns The fully resolved HED string with no splices.
    */
-  private _replaceSplices(unspliced: string, columnMap: Map<string, string>): string {
+  private _replaceSplices(unspliced: string, columnMap: Map<string, string | undefined>): string {
     const result = unspliced.replace(BidsHedTsvParser.braceRegEx, (match, content: string) => {
       // Resolve the replacement value
-      const resolved = columnMap.has(content) ? columnMap.get(content) : ''
+      const resolved = columnMap.get(content) ?? ''
       // Replace with resolved value or empty string if in nullSet
       return BidsHedTsvParser.nullSet.has(resolved) ? '' : resolved
     })

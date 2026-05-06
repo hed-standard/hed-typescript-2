@@ -21,7 +21,7 @@ export class BidsHedIssue {
   /**
    * The file associated with this issue.
    */
-  public readonly file: FilePath
+  public readonly file: FilePath | null
 
   /**
    * The underlying HED issue object.
@@ -56,7 +56,7 @@ export class BidsHedIssue {
   /**
    * The path to the file where the issue occurred.
    */
-  public readonly location: string
+  public readonly location: string | null
 
   /**
    * Constructs a BidsHedIssue object.
@@ -66,7 +66,7 @@ export class BidsHedIssue {
    * @param hedIssue - The HED issue object to be wrapped.
    * @param file - The file object associated with this issue.
    */
-  public constructor(hedIssue: Issue, file: FilePath) {
+  public constructor(hedIssue: Issue, file: FilePath | null) {
     this.hedIssue = hedIssue
     this.file = file
 
@@ -82,7 +82,7 @@ export class BidsHedIssue {
     this.severity = hedIssue.level
     this.issueMessage = hedIssue.message
     this.line = hedIssue.parameters?.tsvLine
-    this.location = file?.path
+    this.location = file?.path ?? null
   }
 
   /**
@@ -106,7 +106,7 @@ export class BidsHedIssue {
       if (!issueMap.has(issue.severity)) {
         issueMap.set(issue.severity, [])
       }
-      issueMap.get(issue.severity).push(issue)
+      issueMap.get(issue.severity)?.push(issue)
     }
     return issueMap
   }
@@ -123,7 +123,7 @@ export class BidsHedIssue {
       if (!codeMap.has(issue.subCode)) {
         codeMap.set(issue.subCode, [])
       }
-      codeMap.get(issue.subCode).push(issue)
+      codeMap.get(issue.subCode)?.push(issue)
     }
     return codeMap
   }
@@ -199,7 +199,7 @@ export class BidsHedIssue {
    */
   public static fromHedIssues(
     hedIssues: unknown,
-    file: FilePath,
+    file: FilePath | null,
     extraParameters: IssueParameters = {},
   ): BidsHedIssue[] {
     if (hedIssues instanceof IssueError) {
@@ -221,7 +221,11 @@ export class BidsHedIssue {
    * @param extraParameters - Any extra parameters to inject into the {@link Issue} object.
    * @returns The BIDS-compatible issue.
    */
-  public static fromHedIssue(hedIssue: Issue, file: FilePath, extraParameters: IssueParameters = {}): BidsHedIssue {
+  public static fromHedIssue(
+    hedIssue: Issue,
+    file: FilePath | null,
+    extraParameters: IssueParameters = {},
+  ): BidsHedIssue {
     hedIssue.addParameters(extraParameters)
     return new BidsHedIssue(hedIssue, file)
   }
@@ -233,16 +237,14 @@ export class BidsHedIssue {
    * @param file - A BIDS-format file object used to generate {@link BidsHedIssue} objects.
    * @returns An array of BIDS-compatible issues.
    */
-  public static transformToBids(issues: Array<BidsHedIssue | Error>, file: FilePath = null): BidsHedIssue[] {
+  public static transformToBids(issues: Array<BidsHedIssue | Error>, file: FilePath | null = null): BidsHedIssue[] {
     return issues.map((issue) => {
       if (issue instanceof BidsHedIssue) {
         return issue
       } else if (issue instanceof IssueError) {
         return BidsHedIssue.fromHedIssue(issue.issue, file)
-      } else if (issue instanceof Error) {
-        return new BidsHedIssue(generateIssue('internalError', { message: issue.message }), file)
       } else {
-        return new BidsHedIssue(generateIssue('internalError', { message: 'Unknown issue type' }), file)
+        return new BidsHedIssue(generateIssue('internalError', { message: issue.message }), file)
       }
     })
   }

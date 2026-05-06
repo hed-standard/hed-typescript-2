@@ -51,12 +51,12 @@ export default class ParsedHedTag extends ParsedHedSubstring {
   /**
    * If definition, this is the second value, otherwise empty string.
    */
-  private _splitValue: string
+  private _splitValue: string | null
 
   /**
    * The units if any.
    */
-  private _units: string
+  private _units: string | null
 
   /**
    * The normalized string representation of this column splice.
@@ -85,8 +85,8 @@ export default class ParsedHedTag extends ParsedHedSubstring {
    */
   private _convertTag(hedSchemas: HedSchemas, tagSpec: TagSpec): void {
     const schemaName = tagSpec.library
-    this.schema = hedSchemas.getSchema(schemaName)
-    if (this.schema === undefined) {
+    const schema = hedSchemas.getSchema(schemaName)
+    if (schema === undefined) {
       if (schemaName !== '') {
         IssueError.generateAndThrow('unmatchedLibrarySchema', {
           tag: this.originalTag,
@@ -98,6 +98,7 @@ export default class ParsedHedTag extends ParsedHedSubstring {
         })
       }
     }
+    this.schema = schema
 
     const [schemaTag, remainder] = new TagConverter(tagSpec, hedSchemas).convert()
     this._schemaTag = schemaTag
@@ -149,7 +150,7 @@ export default class ParsedHedTag extends ParsedHedSubstring {
    * @returns A tuple representing the actual Unit, the unit string and the value string.
    * @throws {IssueError} If parsing the remainder section fails.
    */
-  private _separateUnits(schemaTag: SchemaTag, remainder: string): [SchemaUnit, string, string] {
+  private _separateUnits(schemaTag: SchemaTag, remainder: string): [SchemaUnit | null, string | null, string] {
     const unitClasses = schemaTag.unitClasses
     let actualUnit = null
     let actualUnitString = null
@@ -212,7 +213,7 @@ export default class ParsedHedTag extends ParsedHedSubstring {
     return this._remainder
   }
 
-  public get splitValue(): string {
+  public get splitValue(): string | null {
     return this._splitValue
   }
 
@@ -321,7 +322,7 @@ export default class ParsedHedTag extends ParsedHedSubstring {
    */
   public get unitClasses(): SchemaUnitClass[] {
     if (this.hasUnitClass) {
-      return this.takesValueTag.unitClasses
+      return this.takesValueTag?.unitClasses ?? []
     }
     return []
   }
@@ -351,7 +352,7 @@ export default class ParsedHedTag extends ParsedHedSubstring {
       return `Tag "${this.schemaTag.name}" has a value containing either curly braces or a comma, which is not allowed for tags without specific value class properties.`
     }
     const entryManager = this.schema.entries.valueClasses
-    if (valueClassNames.some((valueClassName) => entryManager.getEntry(valueClassName).validateValue(value))) {
+    if (valueClassNames.some((valueClassName) => entryManager.getEntry(valueClassName)?.validateValue(value))) {
       return ''
     }
     return `Tag "${this.schemaTag.name}" has value classes [${valueClassNames.join(', ')}] but its value "${value}" is not in any of them.`

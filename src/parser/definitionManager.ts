@@ -31,12 +31,12 @@ export class Definition {
   /**
    * The definition contents group.
    */
-  defContents: ParsedHedGroup
+  defContents: ParsedHedGroup | null
 
   /**
    * If definition, this is the second value, otherwise empty string.
    */
-  placeholder: string
+  placeholder: string | null
 
   /**
    * A single definition.
@@ -72,9 +72,9 @@ export class Definition {
     if (!this.defTag.splitValue || (placeholderAllowed && tag.splitValue === '#')) {
       return [this.defContents.normalized, [], []]
     }
-    const evalString = this.defContents.originalTag.replace('#', tag.splitValue)
+    const evalString = this.defContents.originalTag.replace('#', tag.splitValue ?? '#')
     const [normalizedValue, errorIssues, warningIssues] = parseHedString(evalString, hedSchema, false, false, true)
-    if (errorIssues.length > 0) {
+    if (normalizedValue === null) {
       return [null, errorIssues, warningIssues]
     }
     return [normalizedValue.normalized, [], []]
@@ -86,8 +86,10 @@ export class Definition {
    * @param other - Another definition to compare with this one.
    * @returns True if the definitions are equivalent
    */
-  equivalent(other: Definition): boolean {
-    if (this.name !== other.name || this.defTag.splitValue !== other.defTag.splitValue) {
+  equivalent(other: unknown): boolean {
+    if (!(other instanceof Definition)) {
+      return false
+    } else if (this.name !== other.name || this.defTag.splitValue !== other.defTag.splitValue) {
       return false
     } else if (this.defContents?.normalized !== other.defContents?.normalized) {
       return false
@@ -120,9 +122,9 @@ export class Definition {
   public static createDefinition(
     hedString: string,
     hedSchemas: HedSchemas,
-  ): ReturnTupleWithErrorsAndWarnings<Definition | null> {
+  ): ReturnTupleWithErrorsAndWarnings<Definition> {
     const [parsedString, errorIssues, warningIssues] = parseHedString(hedString, hedSchemas, true, true, true)
-    if (errorIssues.length > 0) {
+    if (parsedString === null) {
       return [null, errorIssues, warningIssues]
     }
     if (parsedString.topLevelTags.length !== 0) {
@@ -158,7 +160,7 @@ export class Definition {
    * @param group - The group to create a definition from.
    * @returns A tuple with the definition and any issues. (The definition will be null if issues.)
    */
-  public static createDefinitionFromGroup(group: ParsedHedGroup): ReturnTupleWithErrorsAndWarnings<Definition | null> {
+  public static createDefinitionFromGroup(group: ParsedHedGroup): ReturnTupleWithErrorsAndWarnings<Definition> {
     const def = new Definition(group)
     if (group.topTags.length !== 1 || group.topTags[0].schemaTag.name !== 'Definition') {
       return [
@@ -282,7 +284,7 @@ export class DefinitionManager {
    */
   evaluateTag(tag: ParsedHedTag, hedSchemas: HedSchemas, placeholderAllowed: boolean): ReturnTupleWithIssues<string> {
     const [definition, missingIssues] = this.findDefinition(tag)
-    if (missingIssues.length > 0) {
+    if (definition === null) {
       return [null, missingIssues]
     } else if (definition) {
       const [evaluatedDefinition, errors, warnings] = definition.evaluateDefinition(tag, hedSchemas, placeholderAllowed)
@@ -335,7 +337,7 @@ export class DefinitionManager {
    * @param tag - The parsed HEd tag to be checked.
    * @returns A tuple with the definition and any issues found. If no match is found, the first element is null.
    */
-  findDefinition(tag: ParsedHedTag): ReturnTupleWithIssues<Definition | null> {
+  findDefinition(tag: ParsedHedTag): ReturnTupleWithIssues<Definition> {
     if (tag.schemaTag.name !== 'Def' && tag.schemaTag.name !== 'Def-expand') {
       return [null, []]
     }
@@ -345,7 +347,7 @@ export class DefinitionManager {
     if (!existingDefinition) {
       return [null, [generateIssue(errorType, { definition: name })]]
     }
-    if (!!existingDefinition.defTag.splitValue !== !!tag.splitValue) {
+    if (Boolean(existingDefinition.defTag.splitValue) !== Boolean(tag.splitValue)) {
       return [null, [generateIssue(errorType, { definition: name })]]
     }
     return [existingDefinition, []]

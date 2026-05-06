@@ -6,7 +6,7 @@
 import type ParsedHedGroup from './parsedHedGroup'
 import { BidsHedIssue } from '../bids/types/issues'
 import { type BidsTsvElement } from '../bids/types/tsv'
-import { generateIssue } from '../issues/issues'
+import { generateIssue, IssueError } from '../issues/issues'
 import { FilePath } from '../bids/types/file'
 
 export class Event {
@@ -106,10 +106,10 @@ export class Event {
   }
 
   private static extractDelay(group: ParsedHedGroup): number {
-    if (!group.reservedTags.has('Delay')) {
+    const tags = group.reservedTags.get('Delay')
+    if (tags === undefined) {
       return 0
     }
-    const tags = group.reservedTags.get('Delay')
     const delay = Number(tags[0].value)
     return Number.isFinite(delay) ? delay : 0
   }
@@ -171,6 +171,9 @@ export class EventManager {
 
   private _resolveConflicts(currentMap: Map<string, Event>, event: Event): BidsHedIssue[] {
     const currentEvent = currentMap.get(event.defName)
+    if (currentEvent === undefined) {
+      IssueError.generateAndThrowInternalError('currentMap is resolving a conflict with an undefined event')
+    }
     // Make sure that these events are not at the same time
     if (Math.abs(currentEvent.onset - event.onset) < EventManager.TOLERANCE) {
       return [

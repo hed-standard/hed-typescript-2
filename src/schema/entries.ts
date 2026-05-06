@@ -445,7 +445,12 @@ export class SchemaUnitClass extends SchemaEntryWithAttributes {
    * Get the default unit for this unit class.
    */
   public get defaultUnit(): SchemaUnit | undefined {
-    return this._units.get(this.getSingleAttributeValue('defaultUnits'))
+    const attributeValue = this.getSingleAttributeValue('defaultUnits')
+    if (attributeValue) {
+      return this._units.get(attributeValue)
+    } else {
+      return undefined
+    }
   }
 
   /**

@@ -455,6 +455,11 @@ const issueData: Record<string, IssueType> = {
     level: 'error',
     message: issueMessageTemplate`HED standard schema version ${'version'} is deprecated. Please upgrade to a newer version.`,
   },
+  invalidSchema: {
+    hedCode: 'SCHEMA_LOAD_FAILED',
+    level: 'error',
+    message: issueMessageTemplate`The HED schema is invalid - "${'error'}".`,
+  },
   // BIDS issues
   sidecarKeyMissing: {
     hedCode: 'SIDECAR_KEY_MISSING',
