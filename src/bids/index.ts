@@ -15,6 +15,7 @@ import { BidsTsvFile } from './types/tsv'
 import { BidsDataset } from './types/dataset'
 import { BidsHedIssue } from './types/issues'
 import { BidsFileAccessor, BidsDirectoryAccessor } from './datasetParser'
+import BidsWebAccessor from './webAccessor'
 
 export {
   BidsDataset,
@@ -24,5 +25,6 @@ export {
   BidsHedIssue,
   BidsFileAccessor,
   BidsDirectoryAccessor,
+  BidsWebAccessor,
   buildBidsSchemas,
 }

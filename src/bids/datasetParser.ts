@@ -14,14 +14,9 @@
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 
-import { buildBidsSchemas } from './schema'
-import { type BidsJsonFile } from './types/json'
 import { IssueError } from '../issues/issues'
-import { type HedSchemas } from '../schema/containers'
 import { organizePaths } from '../utils/paths'
 import { type ErrnoException } from '../utils/types'
-
-type SchemaBuilder = (datasetDescription: BidsJsonFile) => Promise<HedSchemas | null>
 
 /**
  * Base class for BIDS file accessors.
@@ -47,11 +42,6 @@ export abstract class BidsFileAccessor<FileType> {
   organizedPaths: Map<string, Map<string, string[]>>
 
   /**
-   * The HED schema builder function.
-   */
-  readonly schemaBuilder: SchemaBuilder
-
-  /**
    * BIDS suffixes.
    */
   private static readonly SUFFIXES: string[] = [
@@ -74,9 +64,8 @@ export abstract class BidsFileAccessor<FileType> {
    *
    * @param datasetRootDirectory - The root directory of the dataset.
    * @param fileMap - A map of relative file paths to file representations (e.g., `File` objects for web, full paths for Node.js).
-   * @param schemaBuilder - The HED schema builder function.
    */
-  protected constructor(datasetRootDirectory: string, fileMap: Map<string, FileType>, schemaBuilder: SchemaBuilder) {
+  protected constructor(datasetRootDirectory: string, fileMap: Map<string, FileType>) {
     if (typeof datasetRootDirectory !== 'string') {
       IssueError.generateAndThrowInternalError(
         'BidsFileAccessor constructor requires a string for datasetRootDirectory.',
@@ -88,7 +77,6 @@ export abstract class BidsFileAccessor<FileType> {
     }
     this.datasetRootDirectory = datasetRootDirectory
     this._initialize(fileMap)
-    this.schemaBuilder = schemaBuilder
   }
 
   /**
@@ -167,7 +155,7 @@ export class BidsDirectoryAccessor extends BidsFileAccessor<string> {
       const message = `Bids validation requires a non-empty string for the dataset root directory but received: ${datasetRootDirectory}`
       IssueError.generateAndThrow('fileReadError', { filename: datasetRootDirectory, message: `${message}` })
     }
-    super(datasetRootDirectory, fileMap, buildBidsSchemas)
+    super(datasetRootDirectory, fileMap)
   }
 
   /**

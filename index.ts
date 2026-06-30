@@ -10,6 +10,7 @@ export {
   BidsHedIssue,
   BidsFileAccessor,
   BidsDirectoryAccessor,
+  BidsWebAccessor,
   buildBidsSchemas,
 } from './src/bids'
 
