@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { assert } from 'chai'
 
-import { beforeAll, describe, afterAll } from '@jest/globals'
+import { jest, beforeAll, describe, afterAll } from '@jest/globals'
 import { BidsHedIssue } from '../src/bids/types/issues'
 import { buildSchemas } from '../src/schema/init'
 import { SchemaSpec, SchemasSpec } from '../src/schema/specs'
@@ -13,6 +13,8 @@ import { generateIssue, IssueError } from '../src/issues/issues'
 import { DefinitionManager } from '../src/parser/definitionManager'
 import parseTSV from '../src/bids/tsvParser'
 import { shouldRun } from '../tests/testHelpers/testUtilities'
+import HedSchemaLoader from '../src/schema/loader'
+jest.mock('../src/schema/loader')
 
 const skipMap = new Map()
 const runAll = true
@@ -178,12 +180,12 @@ describe('HED validation using JSON tests', () => {
       let expectedErrors
       let noErrors
 
-      const failedSidecars = stringifyList(tests.sidecar_tests.fails)
-      const passedSidecars = stringifyList(tests.sidecar_tests.passes)
-      const failedEvents = tsvListToStrings(tests.event_tests.fails)
-      const passedEvents = tsvListToStrings(tests.event_tests.passes)
-      const failedCombos = comboListToStrings(tests.combo_tests.fails)
-      const passedCombos = comboListToStrings(tests.combo_tests.passes)
+      const failedSidecars = stringifyList(tests.sidecar_tests?.fails)
+      const passedSidecars = stringifyList(tests.sidecar_tests?.passes)
+      const failedEvents = tsvListToStrings(tests.event_tests?.fails)
+      const passedEvents = tsvListToStrings(tests.event_tests?.passes)
+      const failedCombos = comboListToStrings(tests.combo_tests?.fails)
+      const passedCombos = comboListToStrings(tests.combo_tests?.passes)
 
       /**
        * Separates the error codes and warning codes from the issues

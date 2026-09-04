@@ -197,6 +197,7 @@ export default abstract class AbstractHedSchemaLoader {
     }
     return this.loadSchemaFile(files.readHTTPSFile(url), 'remoteSchemaLoadFailed', { spec: JSON.stringify(schemaDef) })
   }
+
   /**
    * Load schema XML data from a local file.
    *
