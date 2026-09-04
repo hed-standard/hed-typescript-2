@@ -9,6 +9,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "types": ["node"],
+    "declaration": true,
     "strict": true,
     "strictFunctionTypes": false,
     "strictPropertyInitialization": false,
