@@ -33,7 +33,7 @@ export default class SchemaValueTag extends SchemaTag {
   ) {
     super(name, parentTag, booleanAttributes, valueAttributes, unitClasses, valueClasses)
     if (parentTag === undefined) {
-      IssueError.generateAndThrowInternalError('Value tag must have parent')
+      IssueError.generateAndThrowInternalError(`Value tag "${name}" must have parent`)
     }
     parentTag.valueTag = this
   }

@@ -103,7 +103,7 @@ export default class TagParser extends SchemaEntryWithAttributesParser<SchemaTag
 
   private static getParentTagName(tagElement: NodeElement): string {
     const parentTagElement = tagElement.$parent
-    if (parentTagElement?.$parent) {
+    if (parentTagElement) {
       return getElementTagName(parentTagElement)
     } else {
       return ''

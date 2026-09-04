@@ -108,69 +108,7 @@ expect.extend({
 })
 
 describe('HED validation using JSON tests', () => {
-  const schemaMap = new Map([
-    ['8.2.0', undefined],
-    ['8.3.0', undefined],
-    ['8.4.0', undefined],
-  ])
-
-  beforeAll(async () => {
-    const spec2 = new SchemaSpec('', '8.2.0', '', path.join(__dirname, '../tests/schemaData/unmerged/HED8.2.0.xml'))
-    const specs2 = new SchemasSpec().addSchemaSpec(spec2)
-
-    const spec3 = new SchemaSpec('', '8.3.0', '', path.join(__dirname, '../tests/schemaData/unmerged/HED8.3.0.xml'))
-    const specs3 = new SchemasSpec().addSchemaSpec(spec3)
-
-    const spec4 = new SchemaSpec('', '8.4.0', '', path.join(__dirname, '../tests/schemaData/unmerged/HED8.4.0.xml'))
-    const specs4 = new SchemasSpec().addSchemaSpec(spec4)
-
-    const spec3Lib = new SchemaSpec(
-      'ts',
-      '8.4.0',
-      '',
-      path.join(__dirname, '../tests/schemaData/unmerged/HED8.4.0.xml'),
-    )
-    const specs3Lib = new SchemasSpec().addSchemaSpec(spec3Lib)
-
-    const specScore = new SchemaSpec(
-      'sc',
-      '1.0.0',
-      'score',
-      path.join(__dirname, '../tests/schemaData/unmerged/HED_score_1.0.0.xml'),
-    )
-    const specsScore = new SchemasSpec().addSchemaSpec(specScore)
-
-    const [schemas2, schemas3, schemas4, schemas3lib, schemaScore] = await Promise.all([
-      buildSchemas(specs2),
-      buildSchemas(specs3),
-      buildSchemas(specs4),
-      buildSchemas(specs3Lib),
-      buildSchemas(specsScore),
-    ])
-
-    schemaMap.set('8.2.0', schemas2)
-    schemaMap.set('8.3.0', schemas3)
-    schemaMap.set('8.4.0', schemas4)
-    schemaMap.set('ts:8.3.0', schemas3lib)
-    schemaMap.set('sc:score_1.0.0', schemaScore)
-  })
-
-  afterAll(() => {})
-
-  test('should load testInfo and schemas correctly', () => {
-    expect(testInfo).toBeDefined()
-    expect(schemaMap).toBeDefined()
-    const schema2 = schemaMap.get('8.2.0')
-    expect(schema2).toBeDefined()
-    const schema3 = schemaMap.get('8.3.0')
-    expect(schema3).toBeDefined()
-    const schema4 = schemaMap.get('8.4.0')
-    expect(schema4).toBeDefined()
-    const schema3lib = schemaMap.get('ts:8.3.0')
-    expect(schema3lib).toBeDefined()
-    const schemaScore = schemaMap.get('sc:score_1.0.0')
-    expect(schemaScore).toBeDefined()
-  })
+  const schemaMap = new Map()
 
   describe.each(testInfo)(
     '$error_code $name : $description',
@@ -320,29 +258,20 @@ describe('HED validation using JSON tests', () => {
         }
       }
 
-      const getSchema = function (schemaVersion) {
-        const parts = schemaVersion.split(':', 2)
-        const prefix = parts.length === 1 ? '' : parts[0]
-        const thisSchema = schemaMap.get(schemaVersion).schemas
-        return [prefix, thisSchema.get(prefix)]
-      }
-
-      const getSchemas = function (schemaVersion) {
-        const hedMap = new Map()
-        if (typeof schemaVersion === 'string') {
-          const [prefix, schema] = getSchema(schemaVersion)
-          hedMap.set(prefix, schema)
-        } else {
-          for (const version of schemaVersion) {
-            const [prefix, schema] = getSchema(version)
-            hedMap.set(prefix, schema)
-          }
+      const getSchemas = async function (schemaVersion) {
+        if (schemaMap.has(schemaVersion)) {
+          return schemaMap.get(schemaVersion)
         }
-        return new HedSchemas(hedMap)
+        const schemasSpec = SchemasSpec.parseVersionSpecs(schemaVersion)
+        const schemas = await buildSchemas(schemasSpec)
+        if (typeof schemaVersion === 'string') {
+          schemaMap.set(schemaVersion, schemas)
+        }
+        return schemas
       }
 
       beforeAll(async () => {
-        hedSchema = getSchemas(schema)
+        hedSchema = await getSchemas(schema)
         assert(hedSchema !== undefined, 'HED schemas required should be defined')
         let defIssues
         ;[defList, defIssues] = DefinitionManager.createDefinitions(definitions, hedSchema)
